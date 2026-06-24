@@ -65,27 +65,7 @@ export const useDraggingPosition = () => {
         return undefined;
       }
 
-      const clientYRelativeToTreeTop = e.clientY - treeBb.top;
-      let cumulativeHeight = 0;
-      let linearIndex = 0;
-      let hoveringPosition = 0;
-
-      for (let i = 0; i < itemsHeightArray.current.length; i++) {
-        cumulativeHeight += itemsHeightArray.current[i];
-        if (clientYRelativeToTreeTop <= cumulativeHeight) {
-          linearIndex = i;
-          // Calculate hovering position as a fraction within the current item
-          const previousItemsHeight = cumulativeHeight - itemsHeightArray.current[i];
-          hoveringPosition = linearIndex + (clientYRelativeToTreeTop - previousItemsHeight) / itemsHeightArray.current[i];
-          break;
-        }
-      }
-
       const treeLinearItems = env.linearItems[treeId];
-      // const linearIndexx = Math.min(
-      //   Math.max(0, Math.floor(hoveringPosition)),
-      //   treeLinearItems.length - 1
-      // );
 
       if (treeLinearItems.length === 0) {
         return {
@@ -94,6 +74,41 @@ export const useDraggingPosition = () => {
           indentation: 0,
         };
       }
+
+      // Map the pointer's vertical position onto a fractional "linear index"
+      // using each item's *measured* height, so dragging tracks correctly even
+      // when items have different sizes. The integer part is the item index and
+      // the fractional part is how far the pointer is into that item (0 = top,
+      // approaching 1 = bottom).
+      const itemHeights = itemsHeightArray.current;
+      const clientYRelativeToTreeTop = e.clientY - treeBb.top;
+
+      let hoveringPosition = 0;
+      let cumulativeHeight = 0;
+      let matchedItem = false;
+
+      for (let i = 0; i < itemHeights.length; i++) {
+        const height = itemHeights[i] || 0;
+        if (height > 0 && clientYRelativeToTreeTop < cumulativeHeight + height) {
+          hoveringPosition =
+            i + (clientYRelativeToTreeTop - cumulativeHeight) / height;
+          matchedItem = true;
+          break;
+        }
+        cumulativeHeight += height;
+      }
+
+      if (!matchedItem) {
+        // Pointer is below the last item (e.g. dragging into empty space at the
+        // bottom of the tree). Position it past the end so the "drop at the very
+        // bottom" detection below resolves to a bottom offset.
+        hoveringPosition = treeLinearItems.length;
+      }
+
+      const linearIndex = Math.min(
+        Math.max(0, Math.floor(hoveringPosition)),
+        treeLinearItems.length - 1
+      );
 
       const targetLinearItem = treeLinearItems[linearIndex];
       const targetItem = env.items[targetLinearItem.item];
@@ -168,7 +183,6 @@ export const useDraggingPosition = () => {
       dragCode.current = 'initial';
       itemHeight.current = computeItemHeight(treeId);
       itemsHeightArray.current = computeItemHeightArray(treeId);
-
     }
   );
 
@@ -177,7 +191,6 @@ export const useDraggingPosition = () => {
     dragCode.current = 'initial';
     itemHeight.current = 0;
     itemsHeightArray.current = [0];
-
   });
 
   return {
