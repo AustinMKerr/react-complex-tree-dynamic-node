@@ -87,9 +87,11 @@ export const useDraggingPosition = () => {
       let cumulativeHeight = 0;
       let matchedItem = false;
 
-      for (let i = 0; i < itemHeights.length; i++) {
+      for (let i = 0; i < itemHeights.length; i += 1) {
         const height = itemHeights[i] || 0;
-        if (height > 0 && clientYRelativeToTreeTop < cumulativeHeight + height) {
+        const withinItem =
+          height > 0 && clientYRelativeToTreeTop < cumulativeHeight + height;
+        if (withinItem) {
           hoveringPosition =
             i + (clientYRelativeToTreeTop - cumulativeHeight) / height;
           matchedItem = true;

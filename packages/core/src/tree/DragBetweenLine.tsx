@@ -6,7 +6,7 @@ import { useDragAndDrop } from '../drag/DragAndDropProvider';
 export const DragBetweenLine: React.FC<{
   treeId: string;
 }> = ({ treeId }) => {
-  const { draggingPosition, itemHeight, itemsHeightArray } = useDragAndDrop();
+  const { draggingPosition, itemsHeightArray } = useDragAndDrop();
   const { renderers } = useTree();
 
   const shouldDisplay =
@@ -22,13 +22,19 @@ export const DragBetweenLine: React.FC<{
     onDragOver: e => e.preventDefault(), // Allow dropping
   };
 
+  // Offset the line by the summed heights of the items above it, so it lands at
+  // the correct spot even when items have different heights.
+  const lineOffset = itemsHeightArray
+    .slice(0, draggingPosition.linearIndex)
+    .reduce((acc, height) => acc + height, 0);
+
   return (
     <div
       style={{
         position: 'absolute',
         left: '0',
         right: '0',
-        top: `${itemsHeightArray.slice(0, draggingPosition?.linearIndex ?? 0).reduce((acc, height) => acc + height, 0)}px`,
+        top: `${lineOffset}px`,
       }}
     >
       {renderers.renderDragBetweenLine({
