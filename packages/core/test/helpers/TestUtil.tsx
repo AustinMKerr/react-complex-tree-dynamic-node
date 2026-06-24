@@ -15,6 +15,7 @@ import {
 import { buildTestTree } from './testTree';
 import {
   computeItemHeight,
+  computeItemHeightArray,
   isOutsideOfContainer,
 } from '../../src/controlledEnvironment/layoutUtils';
 import '@testing-library/jest-dom';
@@ -22,6 +23,12 @@ import '@testing-library/jest-dom';
 jest.mock('../../src/controlledEnvironment/layoutUtils');
 
 (computeItemHeight as jest.Mock).mockReturnValue(10);
+// jsdom reports every offsetHeight as 0, so mock uniform 10px item heights to
+// match the clientY math in dragOver (itemIndex * 10 + offset). The array is
+// intentionally longer than any test tree so every drag target is covered.
+(computeItemHeightArray as jest.Mock).mockReturnValue(
+  Array.from({ length: 1000 }, () => 10)
+);
 (isOutsideOfContainer as jest.Mock).mockReturnValue(false);
 
 export class TestUtil {
